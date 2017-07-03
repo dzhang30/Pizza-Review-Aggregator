@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>NYC Pizza</title>
+
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+</head>
+
+<body>
+    <form action="{{ url_for('search_restaurant') }}" method="POST" role="form" class="form-horizontal">
+
+        <fieldset>
+        <legend>Pizza Review Aggregator - NYC</legend>
+
+        <div class="form-group">
+          <label class="col-md-4 control-label" for="restaurant_name">Restaurant Name</label>
+          <div class="col-md-4">
+          <input id="restaurant_name" name="restaurant_name" type="text" placeholder="Let's find a pizza shop!" class="form-control input-md">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="col-md-4 control-label" for="search"></label>
+          <div class="col-md-4">
+            <button id="search" type="submit" class="btn btn-primary">Search</button>
+          </div>
+        </div>
+
+        </fieldset>
+    </form>
+
+    {% if restaurants is defined %}
+         <form action="{{ url_for('get_reviews_and_ratings') }}" method="POST" role="form" class="form-horizontal">
+
+            <div class="form-group">
+                <label class="col-md-4 control-label" for="select_restaurant">Restaurant Addresses</label>
+                <div class="col-md-4">
+                    <select id="select_restaurant" name="select_restaurant" class="form-control">
+                        {% set count = 0 %}
+                        {% for restaurant in restaurants %}
+                            <option value={{ count }}>
+                                {{ restaurant['name'] + ', ' + restaurant['location']['display_address']|join(' ,') }}
+                            </option>
+                            {% set count = count + 1 %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="col-md-4 control-label" for="num_reviews">Number of Reviews</label>
+                <div class="col-md-4">
+                    <select id="num_reviews" name="num_reviews" class="form-control">
+                        {% for i in range(1, 10) %}
+                            <option value={{ i }}>{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+             <div class="form-group">
+                 <label class="col-md-4 control-label" for="get_reviews_ratings"></label>
+                 <div class="col-md-4">
+                     <button id="get_reviews_ratings" type="submit" class="btn btn-primary">Get Reviews & Ratings</button>
+                 </div>
+             </div>
+
+         </form>
+    {% endif %}
+
+    {% if reviews_ratings and average_ratings is defined %}
+        <div class="reviews and scores" align="center">
+            <h4>Reviews & Ratings</h4>
+            <table class="table table-striped table-bordered">
+                <thead>
+                <tr>
+                    <th>Dates</th>
+                    <th>Ratings</th>
+                    <th>Reviews</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for review_rating in reviews_ratings  %}
+                    <tr>
+                        <td>{{ review_rating['date'] }}</td>
+                        <td>{{ review_rating['rating'] }}</td>
+                        <td>{{ review_rating['review'] }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div id="average_score_of_reviews" align="center">
+                <h4>Average score of relevant reviews:</h4>
+                <h4>{{ average_ratings }}</h4>
+        </div>
+    {% endif %}
+</body>
+</html>
