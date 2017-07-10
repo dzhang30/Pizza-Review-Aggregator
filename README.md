@@ -1,4 +1,4 @@
-a web page that accepts the name of a pizza restaurant in NY and displays the n most recent Yelp reviews
+a web application that accepts the name of a pizza restaurant in NYC and displays the n most recent Yelp reviews
 
 ## How to Use
 1. Install Python 3.6.1
