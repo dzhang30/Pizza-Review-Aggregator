@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request
 from yelp import Yelp
 
+API_KEY = 'rn9N_mS2vZmI3WVIq8B6PQ4SM3M7Nf1y3qyu-jQqk0jUeslme9WqVr7rmu4SvU9axWRkbjctH5yQ8rEWrDgSdaluTb9t_rmH_PScfaSqDIpUO5DtIYceJWQYkLhCWXYx'
+
 app = Flask(__name__)
 
 restaurants = []
-yelp = Yelp()
+yelp = Yelp(api_key=API_KEY, limit=5)
 
 
 @app.errorhandler(404)
@@ -20,7 +22,8 @@ def landing_page():
 @app.route('/search', methods=['POST'])
 def search_restaurant():
     if request.method == 'POST':
-        restaurant_name = request.form['restaurant_name']
+        restaurant_name = Yelp.clean_restaurant_name(request.form['restaurant_name'])
+
         global restaurants
         restaurants = yelp.search_pizza_restaurant(restaurant_name)
 

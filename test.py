@@ -1,30 +1,42 @@
-import unittest
+from unittest.mock import patch
+
 from yelp import Yelp
 
-
-class TestYelp(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.yelp = Yelp()
-
-    def test_search_pizza_restaurant(self):
-        restaurants = self.yelp.search_pizza_restaurant('pizza hut')
-        self.assertTrue(len(restaurants) > 0)
-
-    def test_get_reviews_and_ratings(self):
-        # Search pizza hut near New York, NY in Yelp, then sort reviews by Newest First. This will be the result
-        url = 'https://www.yelp.com/biz/pizza-hut-new-york-9?sort_by=date_desc'
-        review = 'Decently good pizza at a decent price.  The cheese tasted cheap, but you get what you pay for.\n'
-        rating = 3.0
-
-        test_result = self.yelp.get_reviews_and_ratings(restaurant_url=url, n=1)
-
-        self.assertEqual(test_result[0]['review'], review)
-        self.assertEqual(test_result[0]['rating'], rating)
+test_api_key = 'testabc'
 
 
-if __name__ == '__main__':
-    unittest.main()
+@patch('yelp.requests')
+def test_search_pizza_restaurant(mock_requests):
+    mock_json = {
+        'businesses': [
+            {'name': 'pizza hut', 'loc': 'nyc'},
+            {'name': 'lombardi\'s pizza', 'loc': 'harlem'},
+            {'name': 'domino\'s pizza', 'loc': 'nyc'},
+            {'name': 'pizza hut', 'loc': 'brooklyn'}
+        ]
+    }
+    mock_requests.session.return_value.get.return_value.json.return_value = mock_json
+
+    yelp = Yelp(api_key=test_api_key, limit=1)
+    search_result = yelp.search_pizza_restaurant('pizza hut')
+    assert search_result == [{'name': 'pizza hut', 'loc': 'nyc'}, {'name': 'pizza hut', 'loc': 'brooklyn'}]
 
 
+@patch('yelp.requests')
+def test_get_reviews_and_ratings(mock_requests):
+    with open('test_yelp_lombardis.html') as outfile:
+        test_yelp_lombardi_html = outfile.read()
+    mock_requests.session.return_value.get.return_value.content = test_yelp_lombardi_html
+
+    yelp = Yelp(api_key=test_api_key, limit=1)
+    result = yelp.get_reviews_and_ratings('test_url', 1)[0]
+
+    assert 0.0 <= result['rating'] <= 5.0  # yelp reviews will always be between 0 - 5 stars
+    assert len(result['date']) == 10  # the date will always be in YYYY-MM-DD format, so 10 characters
+    assert len(result['review']) > 0
+
+
+def test_clean_restaurant_name():
+    test_name = 'This is Yelp\'s Lombardi’s Pizza'
+
+    assert Yelp.clean_restaurant_name(test_name) == 'this is yelps lombardis pizza'

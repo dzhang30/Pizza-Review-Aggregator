@@ -1,40 +1,23 @@
 import requests
 from bs4 import BeautifulSoup
 
-
-CLIENT_ID = 'h9Hv2QQaM4-YX8MGZheEjw'
-CLIENT_SECRET = 'tgxLocnJYlM2Pc9iWq2sOwzlKLXSqfZyI4alwhoBZTzwgqOG6ZQIDm8D27qptZCI'
-
-API_HOME = 'https://api.yelp.com'
-AUTH_TOKEN_PATH = '/oauth2/token'
-SEARCH_PATH = '/v3/businesses/search'
-GRANT_TYPE = 'client_credentials'
+API_HOME = 'https://api.yelp.com/v3'
+SEARCH_PATH = '/businesses/search'
 
 LOCATION = 'New York, NY'
 CATEGORY = ['pizza']
-LIMIT = 5
 
 
 class Yelp(object):
 
-    def __init__(self):
+    def __init__(self, api_key, limit):
+        self.api_key = api_key
+        self.limit = limit  # the number/limit of results you want
         self.sessions = requests.session()
-        self._authenticate()
         self._set_headers()
 
-    def _authenticate(self):
-        """
-        Authenticate with Yelp's API via OAuth2 and sets the Bearer Token
-        """
-        url = '{0}{1}'.format(API_HOME, AUTH_TOKEN_PATH)
-        headers = {'content-type': 'application/x-www-form-urlencoded'}
-        data = {'client_id': CLIENT_ID, 'client_secret': CLIENT_SECRET, 'grant_type': GRANT_TYPE}
-
-        response = self.sessions.post(url=url, headers=headers, data=data)
-        self.bearer_token = response.json()['access_token']
-
     def _set_headers(self):
-        headers = {'Authorization': 'Bearer {}'.format(self.bearer_token)}
+        headers = {'Authorization': 'Bearer {}'.format(self.api_key)}
         self.sessions.headers.update(headers)
 
     def search_pizza_restaurant(self, restaurant_name):
@@ -44,14 +27,12 @@ class Yelp(object):
         :return: list of restaurant(s) that match the input name
         """
         url = '{0}{1}'.format(API_HOME, SEARCH_PATH)
-        params = {'term': restaurant_name, 'location': LOCATION, 'categories': CATEGORY, 'limit': LIMIT}
+        params = {'term': restaurant_name, 'location': LOCATION, 'categories': CATEGORY, 'limit': self.limit}
         response = self.sessions.get(url=url, params=params)
         restaurants = response.json()['businesses']
 
-        result = []
-        for restaurant in restaurants:
-            if restaurant['name'].lower() == restaurant_name.lower():
-                result.append(restaurant)
+        result = [restaurant for restaurant in restaurants if
+                  self.clean_restaurant_name(restaurant['name']) == restaurant_name]
 
         return result
 
@@ -73,8 +54,9 @@ class Yelp(object):
         rating = soup.find('div', {'itemprop': 'reviewRating'}).find('meta', {'itemprop': 'ratingValue'})
         date = soup.find('meta', {'itemprop': 'datePublished'})
         reviews_ratings.append(
-            {'review': review.getText(), 'rating': float(rating['content ']), 'date': date['content']}
+            {'review': review.getText(), 'rating': float(rating['content']), 'date': date['content']}
         )
+
         while n > 1:
             review = review.find_next('p', {'itemprop': 'description'})
             rating = rating.find_next('meta', {'itemprop': 'ratingValue'})
@@ -85,3 +67,7 @@ class Yelp(object):
             n -= 1
 
         return reviews_ratings
+
+    @staticmethod
+    def clean_restaurant_name(name):
+        return name.replace('’', '').replace('\'', '').lower()
